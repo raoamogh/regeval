@@ -1,0 +1,30 @@
+# Example: .github/workflows/regeval.yml in YOUR repo
+#
+# Runs regeval on every pull request, posts a regression report as a PR
+# comment, and fails the check if anything regressed.
+#
+# Setup:
+#   1. Add your LLM provider's API key as a repo secret, e.g. OPENAI_API_KEY
+#   2. Commit a baseline run: regeval run your_suite.yaml --output baseline.json
+#   3. Copy this workflow into .github/workflows/regeval.yml
+
+name: regeval regression check
+
+on:
+  pull_request:
+    paths:
+      - "evals/**"          # only runs when eval suites change -- adjust to your repo
+      - "app/prompts/**"    # or wherever your prompts actually live
+
+jobs:
+  regression-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: raoamogh/regeval/.github/actions/regeval-action@main
+        with:
+          suite: evals/support_bot.suite.yaml
+          baseline: evals/baseline.json
+          api-key: ${{ secrets.OPENAI_API_KEY }}
+          score-drop-threshold: "0.1"
