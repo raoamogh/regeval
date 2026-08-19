@@ -1,0 +1,82 @@
+name: "regeval regression check"
+description: "Run regeval against a suite and comment regression results on the pull request."
+author: "raoamogh"
+
+inputs:
+  suite:
+    description: "Path to the regeval suite YAML file."
+    required: true
+  baseline:
+    description: "Path to a baseline run JSON to compare against. If omitted, only runs the suite and reports pass/fail (no diff)."
+    required: false
+    default: ""
+  api-key:
+    description: "API key for the LLM provider, passed to the environment as REGEVAL_API_KEY. Referenced in your suite YAML as ${REGEVAL_API_KEY}."
+    required: true
+  score-drop-threshold:
+    description: "Score drop threshold for regression detection."
+    required: false
+    default: "0.1"
+  github-token:
+    description: "GitHub token for posting the PR comment. Defaults to the automatic workflow token."
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  has-regressions:
+    description: "'true' if any regression was detected, 'false' otherwise."
+    value: ${{ steps.diff.outputs.has_regressions }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install regeval
+      shell: bash
+      run: pip install regeval
+
+    - name: Run suite
+      shell: bash
+      env:
+        REGEVAL_API_KEY: ${{ inputs.api-key }}
+      run: |
+        regeval run "${{ inputs.suite }}" --output current_run.json
+
+    - name: Diff against baseline
+      id: diff
+      if: ${{ inputs.baseline != '' }}
+      shell: bash
+      run: |
+        set +e
+        regeval diff "${{ inputs.baseline }}" current_run.json \
+          --score-drop-threshold "${{ inputs.score-drop-threshold }}" \
+          --format markdown > diff_report.md
+        DIFF_EXIT_CODE=$?
+        set -e
+
+        if [ "$DIFF_EXIT_CODE" -ne 0 ]; then
+          echo "has_regressions=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "has_regressions=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Comment on pull request
+      if: ${{ inputs.baseline != '' && github.event_name == 'pull_request' }}
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const fs = require('fs');
+          const report = fs.readFileSync('diff_report.md', 'utf8');
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            body: report,
+          });
+
+    - name: Fail the job if regressions were found
+      if: ${{ steps.diff.outputs.has_regressions == 'true' }}
+      shell: bash
+      run: |
+        echo "::error::regeval detected regressions. See the PR comment for details."
+        exit 1
