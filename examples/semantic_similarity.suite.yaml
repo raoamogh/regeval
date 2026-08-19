@@ -1,0 +1,15 @@
+name: "Semantic similarity example"
+provider:
+  base_url: http://localhost:11434/v1
+  api_key: ollama
+  model: llama3
+  embedding_model: nomic-embed-text
+scorer: semantic_similarity
+threshold: 0.75
+cases:
+  - id: explain_recursion
+    prompt: "Explain what recursion is in programming, in one sentence."
+    expected: "Recursion is when a function calls itself to solve smaller instances of the same problem."
+  - id: explain_gravity
+    prompt: "Explain gravity in one sentence, for a curious child."
+    expected: "Gravity is the invisible force that pulls things toward each other, like what keeps your feet on the ground."

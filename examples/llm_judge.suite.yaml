@@ -1,0 +1,14 @@
+name: "LLM-as-judge example"
+provider:
+  base_url: http://localhost:11434/v1
+  api_key: ollama
+  model: llama3
+scorer: llm_judge
+threshold: 0.7
+cases:
+  - id: summarize_plot
+    prompt: "Summarize the plot of Romeo and Juliet in two sentences."
+    expected: "Two young lovers from feuding families in Verona fall in love and secretly marry. Their families' conflict ultimately leads to both of their deaths." 
+  - id: explain_tradeoff
+    prompt: "In one or two sentences, explain the main tradeoff of using a hash table versus a sorted array."
+    expected: "Hash tables offer average O(1) lookup but no ordering, while sorted arrays support ordered traversal and range queries but have O(log n) lookup." 

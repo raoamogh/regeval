@@ -1,0 +1,14 @@
+name: "Exact match example"
+provider:
+  base_url: http://localhost:11434/v1
+  api_key: ollama
+  model: llama3
+scorer: exact_match
+threshold: 0.8
+cases:
+  - id: capital_france
+    prompt: "What is the capital of France? Answer with just the city name."
+    expected: "Paris"
+  - id: math_simple
+    prompt: "What is 12 * 12? Answer with just the number."
+    expected: "144"
