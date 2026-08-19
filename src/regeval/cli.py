@@ -115,7 +115,19 @@ def run(suite_path: str, output: str | None, workers: int) -> None:
     default=0.1,
     help="Flag a still-passing case as regressed if its score drops more than this.",
 )
-def diff(baseline_path: str, current_path: str, score_drop_threshold: float) -> None:
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["rich", "markdown"]),
+    default="rich",
+    help="Output format. 'markdown' is used by the regeval GitHub Action for PR comments.",
+)
+def diff(
+        baseline_path: str, 
+        current_path: str, 
+        score_drop_threshold: float, 
+        output_format: str
+    ) -> None:
     """Compare two saved run JSON files and report regressions."""
     try:
         baseline = RunResult.from_dict(json.loads(Path(baseline_path).read_text()))
@@ -127,7 +139,13 @@ def diff(baseline_path: str, current_path: str, score_drop_threshold: float) -> 
     from regeval.diff import diff_runs
 
     result = diff_runs(baseline, current, score_drop_threshold=score_drop_threshold)
-    print_diff(console, result)
+
+    if output_format == "markdown":
+        from regeval.report import render_diff_markdown
+
+        print(render_diff_markdown(result))
+    else:
+        print_diff(console, result)
 
     sys.exit(1 if result.has_regressions else 0)
 

@@ -145,3 +145,42 @@ def test_regressed_cases_appear_before_unchanged_in_diff_table():
     rendered_ids = [str(cell) for cell in table.columns[0].cells]
 
     assert rendered_ids.index("broken") < rendered_ids.index("stable")
+
+def test_render_diff_markdown_includes_regression_header():
+    baseline = _make_run([_make_case("c1", 0.9, True)])
+    current = _make_run([_make_case("c1", 0.2, False)])
+    diff = diff_runs(baseline, current)
+
+    from regeval.report import render_diff_markdown
+
+    output = render_diff_markdown(diff)
+
+    assert "regeval regression report" in output
+    assert "regression(s) detected" in output
+    assert "c1" in output
+    assert "🔴 REGRESSED" in output
+
+
+def test_render_diff_markdown_no_regressions():
+    baseline = _make_run([_make_case("c1", 1.0, True)])
+    current = _make_run([_make_case("c1", 1.0, True)])
+    diff = diff_runs(baseline, current)
+
+    from regeval.report import render_diff_markdown
+
+    output = render_diff_markdown(diff)
+
+    assert "No regressions detected" in output
+
+
+def test_render_diff_markdown_is_valid_table_structure():
+    baseline = _make_run([_make_case("c1", 1.0, True)])
+    current = _make_run([_make_case("c1", 1.0, True)])
+    diff = diff_runs(baseline, current)
+
+    from regeval.report import render_diff_markdown
+
+    output = render_diff_markdown(diff)
+
+    assert "| Case | Status | Baseline | Current | Δ |" in output
+    assert "|---|---|---|---|---|" in output

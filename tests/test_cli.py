@@ -338,3 +338,40 @@ def test_run_with_llm_judge_scorer(runner, tmp_path, monkeypatch):
     # Proves two distinct generate() calls actually happened: one for the
     # real answer, one for the judge grading it -- not just one call reused.
     assert len(call_log) == 2
+
+def test_diff_markdown_format(runner, tmp_path):
+    baseline = {
+        "suite_name": "s",
+        "scorer": "exact_match",
+        "threshold": 0.8,
+        "timestamp": 0.0,
+        "results": [
+            {
+                "id": "c1",
+                "prompt": "p",
+                "expected": "e",
+                "actual": "e",
+                "score": 1.0,
+                "reasoning": "",
+                "passed": True,
+                "error": None,
+                "duration_seconds": 0.1,
+            }
+        ],
+    }
+    current = json.loads(json.dumps(baseline))
+    current["results"][0]["score"] = 0.1
+    current["results"][0]["passed"] = False
+
+    baseline_path = tmp_path / "baseline.json"
+    current_path = tmp_path / "current.json"
+    baseline_path.write_text(json.dumps(baseline))
+    current_path.write_text(json.dumps(current))
+
+    result = runner.invoke(
+        main, ["diff", str(baseline_path), str(current_path), "--format", "markdown"]
+    )
+
+    assert result.exit_code == 1
+    assert "## regeval regression report" in result.output
+    assert "| Case | Status |" in result.output
